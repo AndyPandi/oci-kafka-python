@@ -22,9 +22,11 @@ kafka-demo-python/
 
 ### Consumer (consumer.py)
 - OCI Kafka 클러스터에서 메시지를 수신하는 컨슈머
-- `python-consumer-group` 컨슈머 그룹으로 동작
+- `python-consumer-group-v2` 컨슈머 그룹으로 동작
 - 최신 메시지부터 읽기 시작 (`auto_offset_reset="latest"`)
-- 실시간으로 메시지를 수신하고 출력
+- 안전한 JSON 역직렬화 기능으로 오류 방지
+- 실시간으로 메시지를 수신하고 상세 정보 출력 (토픽, 파티션, 오프셋)
+- 우아한 종료 처리 (Ctrl+C)
 
 ## 환경 설정
 
@@ -105,7 +107,11 @@ python consumer.py
 ```
 ### Waiting for messages...
 Received: {'id': 0, 'message': 'Hello OCI Kafka 0', 'timestamp': '2024-10-15 19:33:45.123'}
+Topic: your-topic, Partition: 0, Offset: 12345
+--------------------------------------------------
 Received: {'id': 1, 'message': 'Hello OCI Kafka 1', 'timestamp': '2024-10-15 19:33:45.124'}
+Topic: your-topic, Partition: 0, Offset: 12346
+--------------------------------------------------
 ...
 ```
 
@@ -117,12 +123,43 @@ Received: {'id': 1, 'message': 'Hello OCI Kafka 1', 'timestamp': '2024-10-15 19:
 - **인증 메커니즘**: SCRAM-SHA-512
 - **데이터 직렬화**: JSON 형태로 UTF-8 인코딩
 
+## 오프셋 설정 옵션
+
+### auto_offset_reset 설정
+
+- **`latest`** (기본값): 컨슈머 시작 이후의 새로운 메시지만 읽기
+- **`earliest`**: 토픽의 처음부터 모든 메시지 읽기
+
+```python
+# 새로운 메시지만 읽기 (현재 설정)
+auto_offset_reset="latest"
+
+# 모든 메시지 읽기
+auto_offset_reset="earliest"
+```
+
+## 주요 개선사항
+
+### 안전한 메시지 처리
+- JSON 파싱 오류 방지를 위한 `safe_json_deserializer` 함수
+- 잘못된 형식의 메시지도 안전하게 처리
+- 상세한 오류 로그 제공
+
+### 향상된 출력 정보
+- 메시지 내용과 함께 토픽, 파티션, 오프셋 정보 표시
+- 메시지 구분을 위한 구분선 출력
+
+### 우아한 종료 처리
+- Ctrl+C로 안전한 종료 가능
+- 예외 처리 및 리소스 정리
+
 ## 주의사항
 
 1. 환경 변수에 실제 인증 정보를 설정해야 합니다
 2. `script.sh` 파일의 예시 값들을 실제 OCI Kafka 클러스터 정보로 변경해야 합니다
 3. 컨슈머는 무한 루프로 동작하므로 Ctrl+C로 종료할 수 있습니다
 4. 프로듀서는 5개의 메시지를 전송한 후 자동으로 종료됩니다
+5. 컨슈머 그룹 이름이 `python-consumer-group-v2`로 업데이트되었습니다
 
 ## 트러블슈팅
 
@@ -134,3 +171,13 @@ Received: {'id': 1, 'message': 'Hello OCI Kafka 1', 'timestamp': '2024-10-15 19:
 ### 인증 실패 시
 - 사용자명과 비밀번호가 올바른지 확인
 - SASL 메커니즘이 클러스터 설정과 일치하는지 확인
+
+### JSON 역직렬화 오류 시
+- 토픽에 JSON이 아닌 메시지가 있을 때 발생
+- 수정된 `safe_json_deserializer`가 이 문제를 자동으로 처리
+- 오류 메시지와 원본 데이터가 로그에 출력됨
+
+### 메시지를 받지 못할 때
+- `auto_offset_reset="earliest"`로 변경하여 모든 메시지 확인
+- 새로운 컨슈머 그룹 이름 사용 (`group_id` 변경)
+- 프로듀서가 올바른 토픽에 메시지를 보내는지 확인
