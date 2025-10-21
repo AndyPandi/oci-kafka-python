@@ -1,4 +1,4 @@
-# Kafka Demo Python
+# OCI Managed Kafka Demo - Python
 
 Oracle Cloud Infrastructure (OCI) Kafka를 사용한 Python 기반 메시지 프로듀서/컨슈머 데모 프로젝트입니다.
 
